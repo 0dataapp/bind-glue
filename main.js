@@ -20,6 +20,8 @@ const mod = {
 
 	_parseScopes: e => Object.fromEntries(e.split(/\s+/).map(e => e.split(':'))),
 
+	_parsePathname: e => e.match(new RegExp('^\\/(\\w+)(\\/public)?(.*)')).slice(1),
+
 	_tidyEtag: e => {
 		const string = e.trim();
 		const quote = '"';
@@ -68,7 +70,7 @@ const mod = {
 
 	storage: ({ hold, getScope }) => async (req, res, next) => {
 		// console.info(req.method, req.url);
-		const [handle, publicFolder, _url] = req.url.match(new RegExp('^\\/(\\w+)(\\/public)?(.*)')).slice(1);
+		const [handle, publicFolder, _url] = mod._parsePathname(req.url);
 		const token = mod._parseToken(req.headers.authorization);
 
 		if (!publicFolder && !token)
