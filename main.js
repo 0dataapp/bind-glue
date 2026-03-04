@@ -114,40 +114,40 @@ const mod = {
 			if (ancestors.filter(e => fs.existsSync(e) && fs.statSync(e).isFile()).length)
 				return res.status(409).end();
 
-			const meta = await hold.meta(handle, __url);
+		const meta = await hold.meta(handle, __url);
 
-			if (['PUT', 'DELETE'].includes(req.method) && (
-				!targetExists && req.headers['if-match']
-				|| targetExists && req.headers['if-match'] && mod._tidyEtag(req.headers['if-match']) !== meta.ETag
-				|| targetExists && req.headers['if-none-match']
-				))
-				return res.status(412).end();
+		if (['PUT', 'DELETE'].includes(req.method) && (
+			!targetExists && req.headers['if-match']
+			|| targetExists && req.headers['if-match'] && mod._tidyEtag(req.headers['if-match']) !== meta.ETag
+			|| targetExists && req.headers['if-none-match']
+			))
+			return res.status(412).end();
 
-			if (['HEAD', 'GET', 'DELETE'].includes(req.method) && !targetExists)
-				return res.status(404).send('Not found');
+		if (['HEAD', 'GET', 'DELETE'].includes(req.method) && !targetExists)
+			return res.status(404).send('Not found');
 
-			if (req.method === 'GET' && targetExists && req.headers['if-none-match'] && req.headers['if-none-match'].split(',').map(mod._tidyEtag).includes(meta.ETag))
-				return res.status(304).end();
+		if (req.method === 'GET' && targetExists && req.headers['if-none-match'] && req.headers['if-none-match'].split(',').map(mod._tidyEtag).includes(meta.ETag))
+			return res.status(304).end();
 
-			if (req.method === 'PUT')
-				await hold.put(handle, __url, req.body, ancestors, Object.assign(meta, {
-					'Content-Type': req.headers['content-type'],
-					'Last-Modified': new Date().toUTCString(),
-				}));
+		if (req.method === 'PUT')
+			await hold.put(handle, __url, req.body, ancestors, Object.assign(meta, {
+				'Content-Type': req.headers['content-type'],
+				'Last-Modified': new Date().toUTCString(),
+			}));
 
-			if (req.method === 'DELETE')
-				await hold.delete(target, ancestors);
+		if (req.method === 'DELETE')
+			await hold.delete(target, ancestors);
 
-			if (isFolderRequest)
-				meta['Content-Type'] = 'application/ld+json';
-			
-			meta['ETag'] = `"${ meta['ETag'] }"`;
-			
-			res
+		if (isFolderRequest)
+			meta['Content-Type'] = 'application/ld+json';
+		
+		meta['ETag'] = `"${ meta['ETag'] }"`;
+		
+		res
 			.set(meta)
 			.status(200);
 
-			if (['HEAD', 'DELETE'].includes(req.method))
+		if (['HEAD', 'DELETE'].includes(req.method))
 			return req.headers['user-agent'].match(/firefox/i) && req.method === 'DELETE' ? res.send('') : res.end(); // Firefox fails the request unless there's a body.
 
 		return isFolderRequest ? res.json({
