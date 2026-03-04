@@ -2,30 +2,34 @@ import fs from 'fs';
 
 const mod = {
 
-	_parseHandle: query => {
-		const { resource } = Object.fromEntries(new URLSearchParams(query));
+	util: {
 
-		if (!resource)
-			return null;
+		_parseHandle (query) {
+			const { resource } = Object.fromEntries(new URLSearchParams(query));
 
-		const account = Object.fromEntries([resource.split(':').slice(0, 2)]).acct;
+			if (!resource)
+				return null;
 
-		if (!account)
-			return null;
+			const account = Object.fromEntries([resource.split(':').slice(0, 2)]).acct;
 
-		return account.split('@').shift();
-	},
+			if (!account)
+				return null;
 
-	_parseToken: e => (!e || !e.trim()) ? null : e.split('Bearer ').pop(),
+			return account.split('@').shift();
+		},
 
-	_parseScopes: e => Object.fromEntries(e.split(/\s+/).map(e => e.split(':'))),
+		parseToken: e => (!e || !e.trim()) ? null : e.split('Bearer ').pop(),
 
-	_parsePathname: e => e.match(new RegExp('^\\/(\\w+)(\\/public)?(.*)')).slice(1),
+		parseScopes: e => Object.fromEntries(e.split(/\s+/).map(e => e.split(':'))),
 
-	_tidyEtag: e => {
-		const string = e.trim();
-		const quote = '"';
-		return string.startsWith(quote) && string.endsWith(quote) ? string.slice(1, -1) : string;
+		parsePathname: e => e.match(new RegExp('^\\/(\\w+)(\\/public)?(.*)')).slice(1),
+
+		tidyEtag (e) {
+			const string = e.trim();
+			const quote = '"';
+			return string.startsWith(quote) && string.endsWith(quote) ? string.slice(1, -1) : string;
+		},
+
 	},
 
 	cors: () => (req, res, next) => {
@@ -51,7 +55,7 @@ const mod = {
 
 		const base = `${ req.protocol }://${ req.get('host') }`;
 		
-		let handle = mod._parseHandle(req.query);
+		let handle = mod.util._parseHandle(req.query);
 
 		if (!handle)
 			return next();
@@ -70,8 +74,8 @@ const mod = {
 
 	storage: ({ hold, getScope }) => async (req, res, next) => {
 		// console.info(req.method, req.url);
-		const [handle, publicFolder, _url] = mod._parsePathname(req.url);
-		const token = mod._parseToken(req.headers.authorization);
+		const [handle, publicFolder, _url] = mod.util.parsePathname(req.url);
+		const token = mod.util.parseToken(req.headers.authorization);
 
 		if (!publicFolder && !token)
 			return res.status(401).send('missing token');
@@ -90,7 +94,7 @@ const mod = {
 
 		const scopes = !scope ? {
 			// if publicFolder, we may not have a token
-		} : mod._parseScopes(scope);
+		} : mod.util.parseScopes(scope);
 
 		if (!publicFolder && scope && !Object.keys(scopes).includes(_scope) && !Object.keys(scopes).includes('*'))
 			return res.status(401).send('invalid scope');
@@ -120,7 +124,7 @@ const mod = {
 
 		if (['PUT', 'DELETE'].includes(req.method) && (
 			!targetExists && req.headers['if-match']
-			|| targetExists && req.headers['if-match'] && mod._tidyEtag(req.headers['if-match']) !== meta.ETag
+			|| targetExists && req.headers['if-match'] && mod.util.tidyEtag(req.headers['if-match']) !== meta.ETag
 			|| targetExists && req.headers['if-none-match']
 			))
 			return res.status(412).end();
@@ -128,7 +132,7 @@ const mod = {
 		if (['HEAD', 'GET', 'DELETE'].includes(req.method) && !targetExists)
 			return res.status(404).send('Not found');
 
-		if (req.method === 'GET' && targetExists && req.headers['if-none-match'] && req.headers['if-none-match'].split(',').map(mod._tidyEtag).includes(meta.ETag))
+		if (req.method === 'GET' && targetExists && req.headers['if-none-match'] && req.headers['if-none-match'].split(',').map(mod.util.tidyEtag).includes(meta.ETag))
 			return res.status(304).end();
 
 		if (req.method === 'PUT')
