@@ -154,6 +154,9 @@ const mod = {
 			meta['Content-Type'] = 'application/ld+json';
 		
 		meta['ETag'] = `"${ meta['ETag'] }"`;
+
+		if (req.method === 'DELETE')
+			return res.status(200).end();
 		
 		res
 			.set(meta)
