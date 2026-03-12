@@ -150,23 +150,22 @@ const mod = {
 				}),
 			});
 
-		if (req.method === 'DELETE')
+		if (req.method === 'DELETE') {
 			await hold.delete(target, ancestors);
+			return res.status(200).end();
+		} 
 
 		if (isFolderRequest)
 			meta['Content-Type'] = 'application/ld+json';
 		
 		meta['ETag'] = `"${ meta['ETag'] }"`;
 
-		if (req.method === 'DELETE')
-			return res.status(200).end();
-		
 		res
 			.set(meta)
 			.status(200);
 
-		if (['HEAD', 'DELETE'].includes(req.method))
-			return req.headers['user-agent'].match(/firefox/i) && req.method === 'DELETE' ? res.send('') : res.end(); // Firefox fails the request unless there's a body.
+		if (req.method === 'HEAD')
+			return res.end();
 
 		if (isFolderRequest)
 			return res.json({
