@@ -4,7 +4,7 @@ const mod = {
 
 	util: {
 
-		_parseHandle (query) {
+		parseHandle (query) {
 			const { resource } = Object.fromEntries(new URLSearchParams(query));
 
 			if (!resource)
@@ -55,7 +55,7 @@ const mod = {
 
 		const base = `${ req.protocol }://${ req.get('host') }`;
 		
-		let handle = mod.util._parseHandle(req.query);
+		let handle = mod.util.parseHandle(req.query);
 
 		if (!handle)
 			return next();
